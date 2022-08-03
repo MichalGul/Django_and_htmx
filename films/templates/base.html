@@ -29,6 +29,14 @@
         {% block content %}
         {% endblock %}
     </div>
+
+    <script>
+        //Add cfrs token to header according to django docs
+        document.body.addEventListener('htmx:configRequest', function (event) {
+            console.log(event)
+            event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}'
+        })
+    </script>
     
 </body>
 </html>
