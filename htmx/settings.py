@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'widget_tweaks',
     'django_extensions',
+    "django_htmx",
     'films',
 ]
 
@@ -38,6 +39,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    "django_htmx.middleware.HtmxMiddleware",
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

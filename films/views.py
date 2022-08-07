@@ -30,9 +30,16 @@ class RegisterView(FormView):
         return super().form_valid(form)
 
 class FilmList(LoginRequiredMixin, ListView):
-    model = Film
+    model = UserFilms
     template_name = "films.html"
+    paginate_by = 15 # used to handle pagination. gives template tag page_obj to handle sending page number to view by querry parameters ex. src={{page_obj.number|add:1}}
     context_object_name = 'films' # variable name used in template
+
+    def get_template_names(self):
+        if self.request.htmx:
+             return 'partials/film-list-elements.html'
+        else:
+            return 'films.html'
 
     def get_queryset(self):
         return UserFilms.objects.filter(user=self.request.user) # use many to many model to extract user films
