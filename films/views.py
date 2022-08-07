@@ -5,11 +5,11 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django.contrib.auth import get_user_model
-from films.models import Film
+from films.models import Film, UserFilms
 from django.views.generic.list import ListView
 from django.contrib import messages
 from films.forms import RegisterForm
-
+from films.utils import get_max_order, reorder
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 
@@ -35,8 +35,7 @@ class FilmList(LoginRequiredMixin, ListView):
     context_object_name = 'films' # variable name used in template
 
     def get_queryset(self):
-        user = self.request.user
-        return user.films.all()
+        return UserFilms.objects.filter(user=self.request.user) # use many to many model to extract user films
 
 
 
@@ -54,11 +53,14 @@ def add_film(request):
     name = request.POST.get("filmname")
     film = Film.objects.get_or_create(name=name)[0] # creating element in database (no neet for save()
 
-    #add the film to the user's list
-    request.user.films.add(film)
+    # request.user.films.add(film)
+
+    #add the film to the user's list with order
+    if not UserFilms.objects.filter(film=film, user=request.user).exists():
+        UserFilms.objects.create(film=film, user=request.user, order=get_max_order(request.user))
 
     #return tempate with all of the user's films
-    films = request.user.films.all()
+    films = UserFilms.objects.filter(user=request.user)
     messages.success(request, f"Added {name} to list of films")
     return render(request, 'partials/film-list.html', {"films": films})
 
@@ -67,20 +69,21 @@ def add_film(request):
 @require_http_methods(['DELETE'])
 def delete_film(request, pk): ## pk must match parameter in url path
     # remove the film from user's list
-    request.user.films.remove(pk)
-
+    # request.user.films.remove(pk)
+    UserFilms.objects.get(pk=pk).delete()
     # return tempate with all of the user's films
-    films = request.user.films.all()
+    films = UserFilms.objects.filter(user=request.user)
+    reorder(request.user)
     return render(request, 'partials/film-list.html', {"films": films})
 
 
 def search_film(request):
     search_text = request.POST.get("search")
 
-    userfilms = request.user.films.all()
+    userfilms = UserFilms.objects.filter(user=request.user)
     # taxi driver match Taxi Driver
     results = Film.objects.filter(name__icontains=search_text).exclude(
-        name__in=userfilms.values_list('name', flat=True) # wylaczenie z listy nazw filmow ktore juz sa w bazie dla tego usera
+        name__in=userfilms.values_list('film__name', flat=True) # wylaczenie z listy nazw filmow ktore juz sa w bazie dla tego usera
     )
     context = {'results': results}
     return render(request, 'partials/search-results.html', context)
@@ -88,3 +91,14 @@ def search_film(request):
 
 def clear(request):
     return HttpResponse("")
+
+def sort(request):
+    films_pks_order = request.POST.getlist('film_order')
+    print(films_pks_order)
+    films = []
+    for index , film_pk in enumerate(films_pks_order, start=1):
+        userfilm = UserFilms.objects.get(pk=film_pk)
+        userfilm.order = index
+        userfilm.save()
+        films.append(userfilm)
+    return render(request, 'partials/film-list.html', {"films": films})
