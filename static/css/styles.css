@@ -14,3 +14,7 @@
     transform: rotate(45deg);
     transition: all ease-in 5s;
 }
+
+.movie-list-item {
+    cursor: pointer;
+}
