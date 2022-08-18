@@ -42,7 +42,9 @@ class FilmList(LoginRequiredMixin, ListView):
             return 'films.html'
 
     def get_queryset(self):
-        return UserFilms.objects.filter(user=self.request.user) # use many to many model to extract user films
+        # return UserFilms.objects.filter(user=self.request.user) # use many to many model to extract user films
+        # prefetch related object from db to reduce number of querries (used for many to many)
+        return UserFilms.objects.prefetch_related('film').filter(user=self.request.user) # use many to many model to extract user films
 
 
 
@@ -103,11 +105,24 @@ def sort(request):
     films_pks_order = request.POST.getlist('film_order')
     print(films_pks_order)
     films = []
+    updated_films = []
+
+    userfilms = UserFilms.objects.prefetch_related('film').filter(user=request.user)
+
     for index , film_pk in enumerate(films_pks_order, start=1):
-        userfilm = UserFilms.objects.get(pk=film_pk)
-        userfilm.order = index
-        userfilm.save()
+        # userfilm = UserFilms.objects.get(pk=film_pk)
+        # avoid querry to db every iteration
+        userfilm = next(u for u in userfilms if u.pk == int(film_pk))
+
+        if userfilm.order != index:
+            userfilm.order = index
+            updated_films.append(userfilm)
+
         films.append(userfilm)
+        
+    # bulk update instead of update every iteration
+    UserFilms.objects.bulk_update(updated_films, ['order'])
+
     return render(request, 'partials/film-list.html', {"films": films})
 
 @login_required
