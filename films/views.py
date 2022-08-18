@@ -119,7 +119,7 @@ def sort(request):
             updated_films.append(userfilm)
 
         films.append(userfilm)
-        
+
     # bulk update instead of update every iteration
     UserFilms.objects.bulk_update(updated_films, ['order'])
 

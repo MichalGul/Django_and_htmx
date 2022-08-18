@@ -30,7 +30,8 @@ INSTALLED_APPS = [
     'django_extensions',
     "django_htmx",
     'films',
-    'debug_toolbar'
+    'debug_toolbar',
+    'other_functions'
 ]
 
 MIDDLEWARE = [
